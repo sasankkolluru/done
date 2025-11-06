@@ -11,8 +11,13 @@ import { Progress } from '@/components/ui/progress';
 import { Upload, FileSpreadsheet, Check, X, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Papa from 'papaparse';
+<<<<<<< HEAD
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+=======
+import { toast } from 'sonner';
+import adminAPI from '@/services/adminAPI';
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
 
 const DataUpload = () => {
   const [facultyFile, setFacultyFile] = useState<File | null>(null);
@@ -42,16 +47,45 @@ const DataUpload = () => {
     if (type === 'classroom') setClassroomFile(file);
   };
 
+<<<<<<< HEAD
   const handleUploadToDatabase = async (type: string) => {
     const file = type === 'faculty' ? facultyFile : type === 'exam' ? examFile : classroomFile;
     if (!file) {
       toast.error('Please select a file first');
+=======
+  const handleUpload = async (type: string) => {
+    if (uploading) return;
+
+    let file: File | null = null;
+    let endpoint = '';
+
+    switch (type) {
+      case 'faculty':
+        file = facultyFile;
+        endpoint = 'faculty';
+        break;
+      case 'exam':
+        file = examFile;
+        endpoint = 'exams';
+        break;
+      case 'classroom':
+        file = classroomFile;
+        endpoint = 'classrooms';
+        break;
+      default:
+        return;
+    }
+
+    if (!file) {
+      toast.error(`Please select a ${type} file first`);
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
       return;
     }
 
     setUploading(true);
     setProgress(0);
 
+<<<<<<< HEAD
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
@@ -115,6 +149,56 @@ const DataUpload = () => {
         setProgress(0);
       },
     });
+=======
+    try {
+      // Read the file content
+      const fileContent = await file.text();
+      
+      // Parse the CSV data
+      const { data, errors } = await new Promise((resolve) => {
+        Papa.parse(fileContent, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => resolve(results),
+          error: (error) => resolve({ data: [], errors: [error] })
+        });
+      });
+
+      if (errors && errors.length > 0) {
+        throw new Error('Failed to parse CSV file');
+      }
+
+      // Upload the data using the adminAPI
+      const response = await adminAPI.uploadData(endpoint, { data });
+
+      if (response.success) {
+        toast.success(`Successfully uploaded ${data.length} ${type} records`);
+        
+        // Reset the file input
+        switch (type) {
+          case 'faculty':
+            setFacultyFile(null);
+            break;
+          case 'exam':
+            setExamFile(null);
+            break;
+          case 'classroom':
+            setClassroomFile(null);
+            break;
+        }
+        
+        setPreviewData([]);
+      } else {
+        throw new Error(response.message || 'Failed to upload data');
+      }
+    } catch (error: any) {
+      console.error(`Error uploading ${type} data:`, error);
+      toast.error(`Failed to upload ${type} data: ${error.message}`);
+    } finally {
+      setUploading(false);
+      setProgress(0);
+    }
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
   };
 
   const FileUploadCard = ({

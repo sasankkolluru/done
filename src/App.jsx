@@ -1,7 +1,12 @@
 import React from 'react';
+<<<<<<< HEAD
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+=======
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from './contexts/AuthContext';
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import MainLayout from './components/layout/MainLayout';
 import LoginPage from './pages/auth/LoginPage';
@@ -126,6 +131,7 @@ function AppContent() {
 
 function App() {
   return (
+<<<<<<< HEAD
     <ThemeProvider>
       <AuthProvider>
         <Router>
@@ -140,6 +146,18 @@ function App() {
         </Router>
       </AuthProvider>
     </ThemeProvider>
+=======
+    <>
+      <Toaster 
+        position="top-right" 
+        richColors
+        toastOptions={{
+          style: { fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif' },
+        }}
+      />
+      <AppContent />
+    </>
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
   );
 }
 

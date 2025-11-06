@@ -1,5 +1,6 @@
 # ExamDuty - Smart Exam Duty Scheduling System
 
+<<<<<<< HEAD
 A comprehensive, production-ready exam duty scheduling system built with React, TypeScript, Tailwind CSS, and Supabase. This system enables fair, fast, and transparent allocation of exam duties for academic institutions.
 
 ## Features
@@ -14,6 +15,20 @@ A comprehensive, production-ready exam duty scheduling system built with React, 
 - **Dark Mode**: Full theme customization support
 - **Responsive Design**: Works seamlessly on all devices
 - **SEO Optimized**: Built-in SEO best practices
+=======
+A comprehensive exam duty scheduling system built with React, TypeScript, Tailwind CSS, and WebSockets. This system enables fair, fast, and transparent allocation of exam duties for academic institutions with real-time updates and notifications.
+
+## 🚀 Features
+
+### Core Features
+
+- **Real-Time Communication**: WebSocket integration for live updates and notifications
+- **Smart Scheduling**: Algorithm for fair duty allocation
+- **Role-Based Access Control**: Separate dashboards for Admin and Faculty
+- **Data Management**: CSV import/export for faculty, exams, and classroom data
+- **Responsive Design**: Works seamlessly on all devices
+- **Dark/Light Mode**: Toggle between themes for better visibility
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
 
 ### Admin Features
 
@@ -35,6 +50,7 @@ A comprehensive, production-ready exam duty scheduling system built with React, 
 - **Notifications**: Real-time updates on duty changes
 - **Profile Management**: Update personal information
 
+<<<<<<< HEAD
 ## Tech Stack
 
 - **Frontend**: React 18 + TypeScript
@@ -50,19 +66,51 @@ A comprehensive, production-ready exam duty scheduling system built with React, 
 - **Date Handling**: date-fns
 
 ## Getting Started
+=======
+## 🛠️ Tech Stack
+
+- **Frontend**: React 18 + TypeScript
+- **Build Tool**: Vite 4.0+
+- **Styling**: Tailwind CSS + ShadCN/UI
+- **State Management**: React Context API
+- **Real-Time**: Socket.IO for WebSocket communication
+- **Routing**: React Router v6
+- **Form Handling**: React Hook Form
+- **UI Components**: Headless UI, Radix UI
+- **Icons**: Lucide Icons
+- **Date Handling**: date-fns
+- **Notifications**: Sonner
+
+## 🚀 Getting Started
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
 
 ### Prerequisites
 
 - Node.js 18+ and npm
+<<<<<<< HEAD
 - Supabase account (already configured)
 
 ### Installation
 
 1. Install dependencies:
+=======
+- Git
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd done-master
+```
+
+2. Install dependencies:
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
 ```bash
 npm install
 ```
 
+<<<<<<< HEAD
 2. Environment variables are already configured in `.env`
 
 3. Database schema is already applied via migrations
@@ -70,11 +118,27 @@ npm install
 ### Development
 
 Start the development server:
+=======
+3. Copy the `.env.example` to `.env` and update the variables:
+```bash
+cp .env.example .env
+```
+
+### Development
+
+1. Start the development server:
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
 ```bash
 npm run dev
 ```
 
+<<<<<<< HEAD
 The application will be available at `http://localhost:5173`
+=======
+2. The application will be available at `http://localhost:5173`
+
+3. For WebSocket development, ensure your backend server is running on the specified port (default: 5000)
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
 
 ### Building for Production
 
@@ -84,11 +148,16 @@ npm run build
 
 The production build will be in the `dist` directory.
 
+<<<<<<< HEAD
 ## Project Structure
+=======
+## 📁 Project Structure
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
 
 ```
 src/
 ├── components/          # Reusable components
+<<<<<<< HEAD
 │   ├── ui/             # ShadCN UI components
 │   ├── DashboardLayout.tsx
 │   ├── ProtectedRoute.tsx
@@ -98,6 +167,23 @@ src/
 │   └── AuthContext.tsx
 ├── lib/               # Utilities and configs
 │   ├── supabase.ts
+=======
+│   ├── ui/             # UI components
+│   ├── DashboardLayout.tsx
+│   ├── ProtectedRoute.tsx
+│   └── ...
+├── contexts/           # React contexts
+│   ├── AuthContext.tsx
+│   └── SocketContext.tsx
+├── services/           # API and service files
+│   ├── adminAPI.ts
+│   └── ...
+├── pages/              # Application pages
+│   ├── admin/          # Admin specific pages
+│   └── auth/           # Authentication pages
+├── lib/                # Utilities and configs
+│   └── ...
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
 │   └── utils.ts
 ├── pages/             # Page components
 │   ├── admin/         # Admin pages

@@ -4,19 +4,28 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/toast-provider';
+<<<<<<< HEAD
 import { supabase } from '@/lib/supabase';
+=======
+import api from '@/services/api';
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [validLink, setValidLink] = useState(false);
+<<<<<<< HEAD
+=======
+  const [message, setMessage] = useState('');
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
   const [searchParams] = useSearchParams();
   const { addToast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
     // Check if we have a valid reset token in the URL
+<<<<<<< HEAD
     const accessToken = searchParams.get('access_token');
     const refreshToken = searchParams.get('refresh_token');
     const type = searchParams.get('type');
@@ -26,6 +35,16 @@ export default function ResetPasswordPage() {
     } else {
       addToast('Invalid or expired password reset link', 'error');
       navigate('/login');
+=======
+    const token = searchParams.get('token');
+    const email = searchParams.get('email');
+
+    if (!token || !email) {
+      addToast('Invalid or expired password reset link', 'error');
+      navigate('/forgot-password');
+    } else {
+      setValidLink(true);
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
     }
   }, [searchParams, addToast, navigate]);
 
@@ -43,6 +62,7 @@ export default function ResetPasswordPage() {
     }
 
     setLoading(true);
+<<<<<<< HEAD
 
     try {
       const { error } = await supabase.auth.updateUser({
@@ -55,6 +75,33 @@ export default function ResetPasswordPage() {
       navigate('/login');
     } catch (error: any) {
       addToast(error.error_description || error.message, 'error');
+=======
+    setMessage('');
+
+    try {
+      const token = searchParams.get('token');
+      const email = searchParams.get('email');
+      
+      if (!token || !email) {
+        throw new Error('Invalid reset token or email');
+      }
+
+      const response = await api.post('/auth/reset-password', {
+        token,
+        email,
+        newPassword: password,
+      });
+
+      if (response.data.success) {
+        setMessage('Your password has been reset successfully!');
+        addToast('Your password has been updated successfully!', 'success');
+        setTimeout(() => navigate('/login'), 2000);
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to reset password. Please try again.';
+      setMessage(errorMessage);
+      addToast(errorMessage, 'error');
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
     } finally {
       setLoading(false);
     }

@@ -4,17 +4,26 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/toast-provider';
+<<<<<<< HEAD
 import { supabase } from '@/lib/supabase';
+=======
+import api from '@/lib/axios';
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+<<<<<<< HEAD
+=======
+  const [message, setMessage] = useState('');
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
   const { addToast } = useToast();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+<<<<<<< HEAD
     
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -28,6 +37,21 @@ export default function ForgotPasswordPage() {
       navigate('/login');
     } catch (error: any) {
       addToast(error.error_description || error.message, 'error');
+=======
+    setMessage('');
+    
+    try {
+      const response = await api.post('/auth/forgot-password', { email });
+      
+      if (response.data.success) {
+        setMessage('Password reset link has been sent to your email.');
+        addToast('Password reset link sent to your email!', 'success');
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to send reset email. Please try again.';
+      setMessage(errorMessage);
+      addToast(errorMessage, 'error');
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
     } finally {
       setLoading(false);
     }

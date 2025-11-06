@@ -1,6 +1,12 @@
 import axios from 'axios';
 
+<<<<<<< HEAD
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+=======
+// Use Vite's import.meta.env for environment variables
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+console.log('API_URL:', API_URL); // For debugging
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
 
 // Create axios instance
 const api = axios.create({

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useEffect, useState } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { SEO } from '@/components/SEO';
@@ -5,6 +6,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { supabase } from '@/lib/supabase';
 import { Users, Calendar, School, AlertCircle, TrendingUp, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
+=======
+import { useEffect, useState, useCallback } from 'react';
+import { DashboardLayout } from '@/components/DashboardLayout';
+import { SEO } from '@/components/SEO';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Users, Calendar, School, AlertCircle, TrendingUp, Clock, RefreshCw } from 'lucide-react';
+import { motion } from 'framer-motion';
+import adminAPI from '@/services/adminAPI';
+import { useSocket } from '@/contexts/SocketContext';
+import { Button } from '@/components/ui/button';
+import { toast } from '@/components/ui/use-toast';
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
 import {
   BarChart,
   Bar,
@@ -33,6 +46,7 @@ const AdminDashboard = () => {
     pendingRequests: 0,
   });
   const [loading, setLoading] = useState(true);
+<<<<<<< HEAD
 
   useEffect(() => {
     fetchStats();
@@ -59,6 +73,83 @@ const AdminDashboard = () => {
       setLoading(false);
     }
   };
+=======
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { socket } = useSocket();
+
+  useEffect(() => {
+    fetchStats();
+
+    // Set up socket event listeners
+    if (socket) {
+      // Listen for real-time updates
+      socket.on('stats_updated', () => {
+        console.log('Received stats_updated event, refreshing data...');
+        fetchStats(true);
+      });
+
+      // Listen for specific updates
+      socket.on('new_faculty', () => {
+        console.log('New faculty member added, updating stats...');
+        fetchStats(true);
+      });
+
+      socket.on('new_exam', () => {
+        console.log('New exam created, updating stats...');
+        fetchStats(true);
+      });
+
+      // Clean up event listeners
+      return () => {
+        socket.off('stats_updated');
+        socket.off('new_faculty');
+        socket.off('new_exam');
+      };
+    }
+  }, [socket, fetchStats]);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchStats(true);
+  };
+
+  const fetchStats = useCallback(async (showToast = false) => {
+    try {
+      if (!refreshing) setLoading(true);
+      setError(null);
+      
+      const response = await adminAPI.getDashboardStats();
+      
+      if (response.data) {
+        setStats({
+          totalFaculty: response.data.totalFaculty || 0,
+          totalExams: response.data.totalExams || 0,
+          totalSchedules: response.data.totalSchedules || 0,
+          pendingRequests: response.data.pendingRequests || 0,
+        });
+        
+        if (showToast) {
+          toast({
+            title: 'Dashboard updated',
+            description: 'The dashboard has been refreshed with the latest data.',
+          });
+        }
+      }
+    } catch (error: any) {
+      console.error('Error fetching dashboard stats:', error);
+      setError(error.message || 'Failed to load dashboard data');
+      toast({
+        title: 'Error',
+        description: 'Failed to refresh dashboard data',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [refreshing]);
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
 
   const departmentData = [
     { name: 'Computer Science', value: 45 },
@@ -130,6 +221,7 @@ const AdminDashboard = () => {
 
   return (
     <DashboardLayout>
+<<<<<<< HEAD
       <SEO title="Admin Dashboard - Exam Duty Scheduler" />
 
       <div className="space-y-8">
@@ -140,6 +232,36 @@ const AdminDashboard = () => {
           </p>
         </div>
 
+=======
+      <SEO title="Admin Dashboard" />
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+            <p className="text-muted-foreground">
+              Overview of your system's performance and activities
+            </p>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh}
+            disabled={loading || refreshing}
+          >
+            {refreshing ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                Refreshing...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Refresh
+              </>
+            )}
+          </Button>
+        </div>
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {statCards.map((card, index) => (
             <motion.div

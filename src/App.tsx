@@ -1,5 +1,9 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+<<<<<<< HEAD
+=======
+import { SocketProvider } from '@/contexts/SocketContext';
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
 import { Toaster } from '@/components/ui/toaster';
 import { useEffect } from 'react';
 import { LandingPage } from './pages/LandingPage';
@@ -37,6 +41,7 @@ function App() {
 
   return (
     <AuthProvider>
+<<<<<<< HEAD
       <BrowserRouter>
         <DebugInfo />
         <Toaster />
@@ -89,6 +94,63 @@ function App() {
           </Routes>
         </div>
       </BrowserRouter>
+=======
+      <SocketProvider>
+        <BrowserRouter>
+          <DebugInfo />
+          <Toaster />
+          <div className="app-container">
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<SignupPage />} />
+              
+              {/* Protected Routes */}
+              <Route path="/dashboard" element={
+                <ProtectedRoute allowedRoles={['admin', 'faculty']}>
+                  <DashboardPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/profile" element={
+                <ProtectedRoute allowedRoles={['admin', 'faculty']}>
+                  <ProfilePage />
+                </ProtectedRoute>
+              } />
+              <Route path="/settings" element={
+                <ProtectedRoute allowedRoles={['admin', 'faculty']}>
+                  <Settings />
+                </ProtectedRoute>
+              } />
+              
+              {/* Admin Only Routes */}
+              <Route path="/admin" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/upload" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <DataUpload />
+                </ProtectedRoute>
+              } />
+              
+              {/* Faculty Only Routes */}
+              <Route path="/faculty" element={
+                <ProtectedRoute allowedRoles={['faculty']}>
+                  <FacultyDashboard />
+                </ProtectedRoute>
+              } />
+              
+              {/* Error Pages */}
+              <Route path="/unauthorized" element={<UnauthorizedPage />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </div>
+        </BrowserRouter>
+        <Toaster />
+      </SocketProvider>
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
     </AuthProvider>
   );
 }

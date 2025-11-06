@@ -6,7 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+<<<<<<< HEAD
 import { supabase } from '@/lib/supabase';
+=======
+import { userAPI } from '@/services/api';
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
 
 export default function Settings() {
   const [loading, setLoading] = useState(true);
@@ -29,13 +33,20 @@ export default function Settings() {
   const fetchProfile = async () => {
     try {
       setLoading(true);
+<<<<<<< HEAD
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
+=======
+      const response = await userAPI.getMe();
+      
+      if (!response.data) {
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
         navigate('/login');
         return;
       }
 
+<<<<<<< HEAD
       // Fetch additional profile data if needed
       const { data: profileData, error } = await supabase
         .from('profiles')
@@ -51,6 +62,15 @@ export default function Settings() {
         phone: profileData?.phone || '',
         notifications: profileData?.notifications ?? true,
         dark_mode: profileData?.dark_mode ?? false,
+=======
+      const userData = response.data;
+      setProfile({
+        full_name: userData.full_name || '',
+        email: userData.email || '',
+        phone: userData.phone || '',
+        notifications: userData.notifications ?? true,
+        dark_mode: userData.dark_mode ?? false,
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
       });
     } catch (error: any) {
       addToast(error.message || 'Error loading profile', 'error');
@@ -67,11 +87,22 @@ export default function Settings() {
     }));
   };
 
+<<<<<<< HEAD
+=======
+  const handleToggle = (name: string, checked: boolean) => {
+    setProfile(prev => ({
+      ...prev,
+      [name]: checked
+    }));
+  };
+
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
       setSaving(true);
+<<<<<<< HEAD
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -102,6 +133,21 @@ export default function Settings() {
       }
 
       addToast('Settings saved successfully!', 'success');
+=======
+      
+      // Update user profile using the API service
+      const response = await userAPI.updateMe({
+        full_name: profile.full_name,
+        email: profile.email,
+        phone: profile.phone,
+        notifications: profile.notifications,
+        dark_mode: profile.dark_mode
+      });
+
+      if (response.data) {
+        addToast('Profile updated successfully', 'success');
+      }
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
     } catch (error: any) {
       addToast(error.message || 'Error saving settings', 'error');
     } finally {
@@ -109,6 +155,27 @@ export default function Settings() {
     }
   };
 
+<<<<<<< HEAD
+=======
+  const handlePasswordChange = async (currentPassword: string, newPassword: string) => {
+    try {
+      const response = await userAPI.changePassword({
+        currentPassword,
+        newPassword
+      });
+      
+      if (response.data) {
+        addToast('Password updated successfully', 'success');
+        return true;
+      }
+      return false;
+    } catch (error: any) {
+      addToast(error.response?.data?.message || 'Error updating password', 'error');
+      return false;
+    }
+  };
+
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">

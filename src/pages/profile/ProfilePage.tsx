@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+<<<<<<< HEAD
 import { supabase } from '@/lib/supabase';
 
 export default function ProfilePage() {
@@ -14,6 +15,25 @@ export default function ProfilePage() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string>('');
   const [profile, setProfile] = useState({
+=======
+import { userAPI } from '@/services/api';
+
+interface ProfileData {
+  full_name: string;
+  email: string;
+  phone: string;
+  department: string;
+  position: string;
+  avatar_url?: string;
+}
+
+export default function ProfilePage() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string>('');
+  const [profile, setProfile] = useState<ProfileData>({
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
     full_name: '',
     email: '',
     phone: '',
@@ -30,6 +50,7 @@ export default function ProfilePage() {
 
   const fetchProfile = async () => {
     try {
+<<<<<<< HEAD
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -63,6 +84,36 @@ export default function ProfilePage() {
       addToast(error.message || 'Error loading profile', 'error');
     } finally {
       setLoading(false);
+=======
+      const response = await userAPI.getMe();
+      
+      if (response.success && response.data) {
+        const { full_name, email, phone, department, position, avatar_url } = response.data;
+        
+        setProfile({
+          full_name: full_name || '',
+          email: email || '',
+          phone: phone || '',
+          department: department || '',
+          position: position || '',
+        });
+        
+        if (avatar_url) {
+          setAvatarUrl(avatar_url);
+        }
+      } else {
+        throw new Error(response.message || 'Failed to fetch profile');
+      }
+    } catch (error: any) {
+      console.error('Error fetching profile:', error);
+      addToast({
+        title: 'Error',
+        description: error.message || 'Failed to fetch profile',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
     }
   };
 
@@ -86,6 +137,7 @@ export default function ProfilePage() {
     }
   };
 
+<<<<<<< HEAD
   const uploadAvatar = async () => {
     if (!avatarFile) return null;
 
@@ -159,6 +211,53 @@ export default function ProfilePage() {
       addToast(error.message || 'Error updating profile', 'error');
     } finally {
       setSaving(false);
+=======
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+
+    try {
+      const response = await userAPI.updateMe({
+        full_name: profile.full_name,
+        phone: profile.phone,
+        department: profile.department,
+        position: profile.position,
+        avatar: avatarFile
+      });
+      
+      if (response.success && response.data) {
+        const { full_name, email, phone, department, position, avatar_url } = response.data;
+        
+        setProfile({
+          full_name: full_name || '',
+          email: email || '',
+          phone: phone || '',
+          department: department || '',
+          position: position || '',
+        });
+        
+        if (avatar_url) {
+          setAvatarUrl(avatar_url);
+        }
+
+        addToast({
+          title: 'Success',
+          description: 'Profile updated successfully',
+          variant: 'default',
+        });
+      } else {
+        throw new Error(response.message || 'Failed to update profile');
+      }
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      addToast({
+        title: 'Error',
+        description: error.message || 'Failed to update profile',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
     }
   };
 

@@ -3,9 +3,15 @@ import { DashboardLayout } from '@/components/DashboardLayout';
 import { SEO } from '@/components/SEO';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+<<<<<<< HEAD
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Calendar as CalendarIcon, Download, FileText, AlertCircle, Clock } from 'lucide-react';
+=======
+import { useAuth } from '@/contexts/AuthContext';
+import { Calendar as CalendarIcon, Download, FileText, AlertCircle, Clock } from 'lucide-react';
+import { facultyAPI } from '@/services/api';
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
@@ -29,6 +35,7 @@ const FacultyDashboard = () => {
 
   const fetchData = async () => {
     try {
+<<<<<<< HEAD
       const { data: facultyData } = await supabase
         .from('faculty')
         .select('id')
@@ -62,6 +69,36 @@ const FacultyDashboard = () => {
           completedDuties: schedules.filter((s: any) => s.status === 'completed').length,
           totalHours: schedules.reduce((acc: number, s: any) => acc + (s.duty_hours || 0), 0),
           pendingRequests: requestsRes.count || 0,
+=======
+      if (!profile?.id) return;
+      
+      const [schedulesRes, requestsRes] = await Promise.all([
+        facultyAPI.getMyDuties(),
+        facultyAPI.getChangeRequests()
+      ]);
+      
+      if (schedulesRes.data) {
+        const schedules = schedulesRes.data || [];
+        const today = new Date().toISOString().split('T')[0];
+        
+        setSchedules(schedules);
+        
+        // Calculate stats
+        const upcoming = schedules.filter((s: any) => 
+          s.duty_date >= today && s.status === 'scheduled'
+        );
+        const completed = schedules.filter((s: any) => 
+          s.status === 'completed'
+        );
+        
+        setStats({
+          upcomingDuties: upcoming.length,
+          completedDuties: completed.length,
+          totalHours: schedules.reduce((acc: number, duty: any) => 
+            acc + (duty.duration_hours || duty.duty_hours || 0), 0
+          ),
+          pendingRequests: requestsRes.data?.length || 0
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
         });
       }
     } catch (error) {
@@ -226,7 +263,11 @@ const FacultyDashboard = () => {
                       </div>
                     ))}
                 </div>
+<<<<<<< HEAD
               </div>
+=======
+              )}
+>>>>>>> 7dbaff3 (Resolve merge conflicts)
             </CardContent>
           </Card>
         </motion.div>
