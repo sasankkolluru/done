@@ -1,161 +1,159 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { SEO } from '@/components/SEO';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-<<<<<<< HEAD
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/contexts/AuthContext';
-import { Calendar as CalendarIcon, Download, FileText, AlertCircle, Clock } from 'lucide-react';
-=======
-import { useAuth } from '@/contexts/AuthContext';
-import { Calendar as CalendarIcon, Download, FileText, AlertCircle, Clock } from 'lucide-react';
-import { facultyAPI } from '@/services/api';
->>>>>>> 7dbaff3 (Resolve merge conflicts)
-import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
+import { useAuth } from '@/contexts/AuthContext';
+import { facultyAPI } from '@/services/api';
+import { 
+  Calendar as CalendarIcon, 
+  Download, 
+  FileText, 
+  AlertCircle, 
+  Clock,
+  Bell,
+  CheckCircle,
+  FileWarning,
+  UserCheck,
+  Clock3,
+  CalendarCheck2
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+import { format, isAfter, isBefore, isToday } from 'date-fns';
+
+type ExamDuty = {
+  id: string;
+  examName: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: 'upcoming' | 'ongoing' | 'completed';
+  room: string;
+  role: 'invigilator' | 'supervisor' | 'coordinator';
+};
+
+type Announcement = {
+  id: string;
+  title: string;
+  message: string;
+  date: string;
+  isRead: boolean;
+  priority: 'high' | 'medium' | 'low';
+};
 
 const FacultyDashboard = () => {
-  const { profile } = useAuth();
-  const [schedules, setSchedules] = useState<any[]>([]);
+  const { user, profile } = useAuth();
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
+  const [upcomingDuties, setUpcomingDuties] = useState<ExamDuty[]>([]);
+  const [recentAnnouncements, setRecentAnnouncements] = useState<Announcement[]>([]);
   const [stats, setStats] = useState({
-    upcomingDuties: 0,
+    totalDuties: 0,
     completedDuties: 0,
-    totalHours: 0,
-    pendingRequests: 0,
+    pendingTasks: 0,
+    announcements: 0,
   });
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (profile) {
-      fetchData();
-    }
-  }, [profile]);
-
-  const fetchData = async () => {
-    try {
-<<<<<<< HEAD
-      const { data: facultyData } = await supabase
-        .from('faculty')
-        .select('id')
-        .eq('user_id', profile?.id)
-        .maybeSingle();
-
-      if (facultyData) {
-        const [schedulesRes, requestsRes] = await Promise.all([
-          supabase
-            .from('duty_schedules')
-            .select(`
-              *,
-              exams(exam_name, subject, exam_date, start_time, end_time),
-              classrooms(room_number, building)
-            `)
-            .eq('faculty_id', facultyData.id)
-            .order('duty_date', { ascending: true }),
-          supabase
-            .from('change_requests')
-            .select('*', { count: 'exact', head: true })
-            .eq('faculty_id', facultyData.id)
-            .eq('status', 'pending'),
-        ]);
-
-        const schedules = schedulesRes.data || [];
-        const today = new Date().toISOString().split('T')[0];
-
-        setSchedules(schedules);
-        setStats({
-          upcomingDuties: schedules.filter((s: any) => s.duty_date >= today && s.status === 'scheduled').length,
-          completedDuties: schedules.filter((s: any) => s.status === 'completed').length,
-          totalHours: schedules.reduce((acc: number, s: any) => acc + (s.duty_hours || 0), 0),
-          pendingRequests: requestsRes.count || 0,
-=======
-      if (!profile?.id) return;
-      
-      const [schedulesRes, requestsRes] = await Promise.all([
-        facultyAPI.getMyDuties(),
-        facultyAPI.getChangeRequests()
-      ]);
-      
-      if (schedulesRes.data) {
-        const schedules = schedulesRes.data || [];
-        const today = new Date().toISOString().split('T')[0];
+    const fetchDashboardData = async () => {
+      try {
+        setIsLoading(true);
         
-        setSchedules(schedules);
+        // Fetch faculty duties
+        const dutiesResponse = await facultyAPI.getMyDuties();
+        if (dutiesResponse.success) {
+          const duties = dutiesResponse.data.map((duty: any) => ({
+            ...duty,
+            status: getDutyStatus(duty.date, duty.startTime, duty.endTime)
+          }));
+          
+          setUpcomingDuties(duties);
+          
+          // Calculate stats
+          const completed = duties.filter((d: ExamDuty) => d.status === 'completed').length;
+          const upcoming = duties.filter((d: ExamDuty) => d.status === 'upcoming').length;
+          
+          setStats(prev => ({
+            ...prev,
+            totalDuties: duties.length,
+            completedDuties: completed,
+            pendingTasks: upcoming
+          }));
+        }
         
-        // Calculate stats
-        const upcoming = schedules.filter((s: any) => 
-          s.duty_date >= today && s.status === 'scheduled'
-        );
-        const completed = schedules.filter((s: any) => 
-          s.status === 'completed'
-        );
+        // Fetch announcements
+        const announcementsResponse = await facultyAPI.getAnnouncements();
+        if (announcementsResponse.success) {
+          const announcements = announcementsResponse.data
+            .sort((a: Announcement, b: Announcement) => 
+              new Date(b.date).getTime() - new Date(a.date).getTime()
+            )
+            .slice(0, 3); // Get only the 3 most recent
+            
+          setRecentAnnouncements(announcements);
+          setStats(prev => ({
+            ...prev,
+            announcements: announcementsResponse.data.length
+          }));
+        }
         
-        setStats({
-          upcomingDuties: upcoming.length,
-          completedDuties: completed.length,
-          totalHours: schedules.reduce((acc: number, duty: any) => 
-            acc + (duty.duration_hours || duty.duty_hours || 0), 0
-          ),
-          pendingRequests: requestsRes.data?.length || 0
->>>>>>> 7dbaff3 (Resolve merge conflicts)
-        });
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
+    };
+    
+    if (user) {
+      fetchDashboardData();
+    }
+  }, [user]);
+  
+  const getDutyStatus = (date: string, startTime: string, endTime: string) => {
+    const now = new Date();
+    const dutyDate = new Date(`${date}T${startTime}`);
+    const dutyEnd = new Date(`${date}T${endTime}`);
+    
+    if (now > dutyEnd) return 'completed';
+    if (now >= dutyDate && now <= dutyEnd) return 'ongoing';
+    return 'upcoming';
+  };
+  
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'ongoing':
+        return <Badge variant="destructive" className="flex items-center gap-1">
+          <Clock3 className="h-3 w-3" /> Ongoing
+        </Badge>;
+      case 'completed':
+        return <Badge variant="outline" className="text-green-600 border-green-300">
+          <CheckCircle className="h-3 w-3 mr-1" /> Completed
+        </Badge>;
+      default:
+        return <Badge variant="secondary" className="flex items-center gap-1">
+          <CalendarCheck2 className="h-3 w-3" /> Upcoming
+        </Badge>;
+    }
+  };
+  
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case 'high':
+        return <Badge variant="destructive" className="text-xs">High</Badge>;
+      case 'medium':
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 text-xs">Medium</Badge>;
+      default:
+        return <Badge variant="outline" className="text-xs">Low</Badge>;
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: any; label: string }> = {
-      scheduled: { variant: 'default', label: 'Scheduled' },
-      completed: { variant: 'secondary', label: 'Completed' },
-      cancelled: { variant: 'destructive', label: 'Cancelled' },
-      pending_change: { variant: 'outline', label: 'Pending Change' },
-    };
-
-    const config = variants[status] || variants.scheduled;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-  };
-
-  const statCards = [
-    {
-      title: 'Upcoming Duties',
-      value: stats.upcomingDuties,
-      icon: CalendarIcon,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100 dark:bg-blue-900/20',
-    },
-    {
-      title: 'Completed Duties',
-      value: stats.completedDuties,
-      icon: FileText,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100 dark:bg-green-900/20',
-    },
-    {
-      title: 'Total Hours',
-      value: stats.totalHours,
-      icon: Clock,
-      color: 'text-amber-600',
-      bgColor: 'bg-amber-100 dark:bg-amber-900/20',
-    },
-    {
-      title: 'Pending Requests',
-      value: stats.pendingRequests,
-      icon: AlertCircle,
-      color: 'text-red-600',
-      bgColor: 'bg-red-100 dark:bg-red-900/20',
-    },
-  ];
-
-  if (loading) {
+  if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
         </div>
       </DashboardLayout>
     );
@@ -165,112 +163,230 @@ const FacultyDashboard = () => {
     <DashboardLayout>
       <SEO title="Faculty Dashboard - Exam Duty Scheduler" />
 
-      <div className="space-y-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">
-              Welcome, {profile?.full_name?.split(' ')[0] || 'Faculty'}!
-            </h1>
-            <p className="text-muted-foreground text-lg">
-              Here's your duty schedule overview
-            </p>
-          </div>
-          <Button>
-            <Download className="w-4 h-4 mr-2" />
-            Download Schedule
-          </Button>
+      <div className="space-y-6">
+        {/* Welcome Section */}
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold">Welcome back, {profile?.full_name || 'Faculty'}</h1>
+          <p className="text-gray-600">
+            Here's what's happening with your exam duties and schedule.
+          </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {statCards.map((card, index) => (
-            <motion.div
-              key={card.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-            >
-              <Card className="hover:shadow-lg transition-shadow">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    {card.title}
-                  </CardTitle>
-                  <div className={`${card.bgColor} p-2 rounded-lg`}>
-                    <card.icon className={`h-5 w-5 ${card.color}`} />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{card.value}</div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
+        {/* Stats Grid */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Upcoming Duties</CardTitle>
-              <CardDescription>
-                Your scheduled exam duties
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {schedules.filter((s) => s.status === 'scheduled').length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <CalendarIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No upcoming duties scheduled</p>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Total Duties</p>
+                  <h3 className="text-2xl font-bold">{stats.totalDuties}</h3>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {schedules
-                    .filter((s) => s.status === 'scheduled')
-                    .slice(0, 5)
-                    .map((schedule: any) => (
-                      <div
-                        key={schedule.id}
-                        className="flex items-center justify-between p-4 rounded-lg border hover:bg-accent transition-colors"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="font-semibold text-lg">
-                              {schedule.exams?.exam_name}
-                            </h3>
-                            {getStatusBadge(schedule.status)}
-                          </div>
-                          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <CalendarIcon className="w-4 h-4" />
-                              {format(new Date(schedule.duty_date), 'MMM dd, yyyy')}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-4 h-4" />
-                              {schedule.exams?.start_time} - {schedule.exams?.end_time}
-                            </div>
-                            {schedule.classrooms && (
-                              <div>
-                                Room: {schedule.classrooms.room_number}, {schedule.classrooms.building}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <Button variant="outline" size="sm">
-                          View Details
-                        </Button>
-                      </div>
-                    ))}
+                <div className="p-3 rounded-full bg-blue-100 text-blue-600">
+                  <FileText className="h-6 w-6" />
                 </div>
-<<<<<<< HEAD
               </div>
-=======
-              )}
->>>>>>> 7dbaff3 (Resolve merge conflicts)
             </CardContent>
           </Card>
-        </motion.div>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Completed</p>
+                  <h3 className="text-2xl font-bold">{stats.completedDuties}</h3>
+                </div>
+                <div className="p-3 rounded-full bg-green-100 text-green-600">
+                  <CheckCircle className="h-6 w-6" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Pending Tasks</p>
+                  <h3 className="text-2xl font-bold">{stats.pendingTasks}</h3>
+                </div>
+                <div className="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                  <FileWarning className="h-6 w-6" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Announcements</p>
+                  <h3 className="text-2xl font-bold">{stats.announcements}</h3>
+                </div>
+                <div className="p-3 rounded-full bg-purple-100 text-purple-600">
+                  <Bell className="h-6 w-6" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Upcoming Duties */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Upcoming Exam Duties</CardTitle>
+                  <CardDescription>Your scheduled invigilation duties</CardDescription>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => navigate('/faculty/duties')}
+                >
+                  View All
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {upcomingDuties.length > 0 ? (
+                <div className="space-y-4">
+                  {upcomingDuties.slice(0, 3).map((duty) => (
+                    <motion.div 
+                      key={duty.id}
+                      whileHover={{ x: 5 }}
+                      className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
+                      onClick={() => navigate(`/faculty/duties/${duty.id}`)}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-medium">{duty.examName}</h4>
+                          <p className="text-sm text-gray-500">
+                            {format(new Date(duty.date), 'MMM d, yyyy')} • {duty.startTime} - {duty.endTime}
+                          </p>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Room: {duty.room} • {duty.role.charAt(0).toUpperCase() + duty.role.slice(1)}
+                          </p>
+                        </div>
+                        {getStatusBadge(duty.status)}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <UserCheck className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+                  <p className="text-gray-500">No upcoming duties scheduled</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-2"
+                    onClick={() => navigate('/faculty/availability')}
+                  >
+                    Update Availability
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Recent Announcements */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Recent Announcements</CardTitle>
+                  <CardDescription>Important updates and notices</CardDescription>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => navigate('/faculty/announcements')}
+                >
+                  View All
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {recentAnnouncements.length > 0 ? (
+                <div className="space-y-4">
+                  {recentAnnouncements.map((announcement) => (
+                    <div 
+                      key={announcement.id} 
+                      className={`p-4 rounded-lg border ${!announcement.isRead ? 'bg-blue-50 border-blue-200' : ''}`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-medium">{announcement.title}</h4>
+                        {getPriorityBadge(announcement.priority)}
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                        {announcement.message}
+                      </p>
+                      <div className="flex justify-between items-center mt-2">
+                        <span className="text-xs text-gray-400">
+                          {format(new Date(announcement.date), 'MMM d, yyyy')}
+                        </span>
+                        {!announcement.isRead && (
+                          <span className="text-xs text-blue-600 font-medium">New</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Bell className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+                  <p className="text-gray-500">No recent announcements</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Common tasks and shortcuts</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Button 
+                variant="outline" 
+                className="h-24 flex flex-col items-center justify-center space-y-2"
+                onClick={() => navigate('/faculty/availability')}
+              >
+                <CalendarIcon className="h-6 w-6" />
+                <span>Update Availability</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                className="h-24 flex flex-col items-center justify-center space-y-2"
+                onClick={() => navigate('/faculty/duties')}
+              >
+                <FileText className="h-6 w-6" />
+                <span>View Duties</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                className="h-24 flex flex-col items-center justify-center space-y-2"
+                onClick={() => navigate('/faculty/leave')}
+              >
+                <AlertCircle className="h-6 w-6" />
+                <span>Request Leave</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                className="h-24 flex flex-col items-center justify-center space-y-2"
+                onClick={() => navigate('/faculty/reports')}
+              >
+                <Download className="h-6 w-6" />
+                <span>Download Reports</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );

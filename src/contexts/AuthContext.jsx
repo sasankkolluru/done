@@ -1,6 +1,18 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
+
+// Create a custom hook for navigation to avoid issues when used outside Router
+const useSafeNavigate = () => {
+  try {
+    return useNavigate();
+  } catch (error) {
+    // Fallback to window.location if useNavigate is not available
+    return (path) => {
+      window.location.href = path;
+    };
+  }
+};
 
 const AuthContext = createContext(null);
 
@@ -8,7 +20,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
+  const navigate = useSafeNavigate();
 
   // Check if user is authenticated on initial load
   useEffect(() => {
@@ -33,6 +45,15 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
+  // Safe navigation function
+  const safeNavigate = useCallback((path) => {
+    if (navigate) {
+      navigate(path);
+    } else {
+      window.location.href = path;
+    }
+  }, [navigate]);
+
   // Login function
   const login = async (credentials) => {
     try {
@@ -45,7 +66,7 @@ export const AuthProvider = ({ children }) => {
       
       // Redirect based on user role
       const redirectPath = user.role === 'admin' ? '/admin/dashboard' : '/dashboard';
-      navigate(redirectPath);
+      safeNavigate(redirectPath);
       
       return user;
     } catch (err) {
@@ -77,16 +98,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Logout function
-  const logout = async () => {
-    try {
-      await authAPI.logout();
-    } catch (err) {
-      console.error('Logout error:', err);
-    } finally {
-      localStorage.removeItem('token');
-      setUser(null);
-      navigate('/login');
-    }
+  const logout = () => {
+    localStorage.removeItem('token');
+    setUser(null);
+    safeNavigate('/login');
   };
 
   // Update user data

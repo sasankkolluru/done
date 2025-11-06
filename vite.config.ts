@@ -11,8 +11,6 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ['lucide-react'],
-<<<<<<< HEAD
-=======
     include: ['socket.io-client'],
     esbuildOptions: {
       // Enable esbuild's CSP-compliant behavior
@@ -40,6 +38,5 @@ export default defineConfig({
   preview: {
     port: 5173,
     strictPort: true,
->>>>>>> 7dbaff3 (Resolve merge conflicts)
   },
 });

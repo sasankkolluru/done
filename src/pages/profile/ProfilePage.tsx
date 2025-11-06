@@ -6,16 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-<<<<<<< HEAD
-import { supabase } from '@/lib/supabase';
-
-export default function ProfilePage() {
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarUrl, setAvatarUrl] = useState<string>('');
-  const [profile, setProfile] = useState({
-=======
 import { userAPI } from '@/services/api';
 
 interface ProfileData {
@@ -33,7 +23,6 @@ export default function ProfilePage() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string>('');
   const [profile, setProfile] = useState<ProfileData>({
->>>>>>> 7dbaff3 (Resolve merge conflicts)
     full_name: '',
     email: '',
     phone: '',
@@ -41,7 +30,7 @@ export default function ProfilePage() {
     position: '',
   });
   
-  const { addToast } = useToast();
+  const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -50,41 +39,6 @@ export default function ProfilePage() {
 
   const fetchProfile = async () => {
     try {
-<<<<<<< HEAD
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        navigate('/login');
-        return;
-      }
-
-      // Fetch user profile
-      const { data: profileData, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (error) throw error;
-
-      setProfile({
-        full_name: profileData?.full_name || user.user_metadata?.full_name || '',
-        email: user.email || '',
-        phone: profileData?.phone || '',
-        department: profileData?.department || '',
-        position: profileData?.position || '',
-      });
-
-      // Set avatar URL if exists
-      if (profileData?.avatar_url) {
-        setAvatarUrl(profileData.avatar_url);
-      }
-    } catch (error: any) {
-      addToast(error.message || 'Error loading profile', 'error');
-    } finally {
-      setLoading(false);
-=======
       const response = await userAPI.getMe();
       
       if (response.success && response.data) {
@@ -106,14 +60,13 @@ export default function ProfilePage() {
       }
     } catch (error: any) {
       console.error('Error fetching profile:', error);
-      addToast({
+      toast({
         title: 'Error',
         description: error.message || 'Failed to fetch profile',
         variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
->>>>>>> 7dbaff3 (Resolve merge conflicts)
     }
   };
 
@@ -129,7 +82,11 @@ export default function ProfilePage() {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (file.size > 2 * 1024 * 1024) { // 2MB limit
-        addToast('File size should be less than 2MB', 'error');
+        toast({
+          title: 'Error',
+          description: 'File size should be less than 2MB',
+          variant: 'destructive',
+        });
         return;
       }
       setAvatarFile(file);
@@ -137,93 +94,22 @@ export default function ProfilePage() {
     }
   };
 
-<<<<<<< HEAD
-  const uploadAvatar = async () => {
-    if (!avatarFile) return null;
-
-    try {
-      const fileExt = avatarFile.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, avatarFile);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-
-      return publicUrl;
-    } catch (error: any) {
-      addToast(error.message || 'Error uploading avatar', 'error');
-      return null;
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      setSaving(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        navigate('/login');
-        return;
-      }
-
-      let avatarUrlToSave = avatarUrl;
-      if (avatarFile) {
-        const newAvatarUrl = await uploadAvatar();
-        if (newAvatarUrl) {
-          avatarUrlToSave = newAvatarUrl;
-        }
-      }
-
-      // Update profile in the profiles table
-      const { error } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user.id,
-          full_name: profile.full_name,
-          phone: profile.phone,
-          department: profile.department,
-          position: profile.position,
-          avatar_url: avatarUrlToSave,
-          updated_at: new Date().toISOString(),
-        });
-
-      if (error) throw error;
-
-      // Update email in auth if changed
-      if (user.email !== profile.email) {
-        const { error: emailError } = await supabase.auth.updateUser({
-          email: profile.email,
-        });
-        if (emailError) throw emailError;
-      }
-
-      addToast('Profile updated successfully!', 'success');
-    } catch (error: any) {
-      addToast(error.message || 'Error updating profile', 'error');
-    } finally {
-      setSaving(false);
-=======
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
 
     try {
-      const response = await userAPI.updateMe({
-        full_name: profile.full_name,
-        phone: profile.phone,
-        department: profile.department,
-        position: profile.position,
-        avatar: avatarFile
-      });
+      const formData = new FormData();
+      formData.append('full_name', profile.full_name);
+      formData.append('email', profile.email);
+      formData.append('phone', profile.phone);
+      formData.append('department', profile.department);
+      formData.append('position', profile.position);
+      if (avatarFile) {
+        formData.append('avatar', avatarFile);
+      }
+
+      const response = await userAPI.updateMe(formData);
       
       if (response.success && response.data) {
         const { full_name, email, phone, department, position, avatar_url } = response.data;
@@ -240,7 +126,7 @@ export default function ProfilePage() {
           setAvatarUrl(avatar_url);
         }
 
-        addToast({
+        toast({
           title: 'Success',
           description: 'Profile updated successfully',
           variant: 'default',
@@ -250,18 +136,17 @@ export default function ProfilePage() {
       }
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      addToast({
+      toast({
         title: 'Error',
         description: error.message || 'Failed to update profile',
         variant: 'destructive',
       });
     } finally {
       setIsSaving(false);
->>>>>>> 7dbaff3 (Resolve merge conflicts)
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div>Loading profile...</div>
@@ -384,8 +269,8 @@ export default function ProfilePage() {
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={saving}>
-            {saving ? 'Saving...' : 'Save Changes'}
+          <Button type="submit" disabled={isSaving}>
+            {isSaving ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>
       </form>

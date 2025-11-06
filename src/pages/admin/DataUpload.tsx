@@ -8,392 +8,368 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
-import { Upload, FileSpreadsheet, Check, X, AlertCircle } from 'lucide-react';
+import { Upload, FileSpreadsheet, Check, X, AlertCircle, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Papa from 'papaparse';
-<<<<<<< HEAD
-import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
-=======
 import { toast } from 'sonner';
 import adminAPI from '@/services/adminAPI';
->>>>>>> 7dbaff3 (Resolve merge conflicts)
 
-const DataUpload = () => {
-  const [facultyFile, setFacultyFile] = useState<File | null>(null);
-  const [examFile, setExamFile] = useState<File | null>(null);
-  const [classroomFile, setClassroomFile] = useState<File | null>(null);
-  const [previewData, setPreviewData] = useState<any[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
+type UploadType = 'faculty' | 'exam' | 'classroom';
 
-  const handleFileUpload = (file: File, type: string) => {
+interface UploadState {
+  file: File | null;
+  data: any[];
+  headers: string[];
+  isUploading: boolean;
+  progress: number;
+  error: string | null;
+  success: boolean;
+}
+
+export default function DataUpload() {
+  const [activeTab, setActiveTab] = useState<UploadType>('faculty');
+  const [uploadStates, setUploadStates] = useState<Record<UploadType, UploadState>>({
+    faculty: { file: null, data: [], headers: [], isUploading: false, progress: 0, error: null, success: false },
+    exam: { file: null, data: [], headers: [], isUploading: false, progress: 0, error: null, success: false },
+    classroom: { file: null, data: [], headers: [], isUploading: false, progress: 0, error: null, success: false },
+  });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: UploadType) => {
+    const file = e.target.files?.[0];
     if (!file) return;
 
+    // Reset state for this upload type
+    setUploadStates(prev => ({
+      ...prev,
+      [type]: {
+        ...prev[type],
+        file,
+        data: [],
+        headers: [],
+        error: null,
+        success: false,
+      },
+    }));
+
+    // Parse the CSV file
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        setPreviewData(results.data.slice(0, 10));
-        toast.success(`File parsed successfully! ${results.data.length} rows found.`);
+        if (results.errors.length > 0) {
+          setUploadStates(prev => ({
+            ...prev,
+            [type]: {
+              ...prev[type],
+              error: 'Error parsing CSV file',
+            },
+          }));
+          return;
+        }
+
+        setUploadStates(prev => ({
+          ...prev,
+          [type]: {
+            ...prev[type],
+            data: results.data,
+            headers: results.meta.fields || [],
+          },
+        }));
       },
       error: (error) => {
-        toast.error(`Error parsing file: ${error.message}`);
+        setUploadStates(prev => ({
+          ...prev,
+          [type]: {
+            ...prev[type],
+            error: `Error parsing file: ${error.message}`,
+          },
+        }));
       },
     });
-
-    if (type === 'faculty') setFacultyFile(file);
-    if (type === 'exam') setExamFile(file);
-    if (type === 'classroom') setClassroomFile(file);
   };
 
-<<<<<<< HEAD
-  const handleUploadToDatabase = async (type: string) => {
-    const file = type === 'faculty' ? facultyFile : type === 'exam' ? examFile : classroomFile;
-    if (!file) {
-      toast.error('Please select a file first');
-=======
-  const handleUpload = async (type: string) => {
-    if (uploading) return;
-
-    let file: File | null = null;
-    let endpoint = '';
-
-    switch (type) {
-      case 'faculty':
-        file = facultyFile;
-        endpoint = 'faculty';
-        break;
-      case 'exam':
-        file = examFile;
-        endpoint = 'exams';
-        break;
-      case 'classroom':
-        file = classroomFile;
-        endpoint = 'classrooms';
-        break;
-      default:
-        return;
-    }
-
-    if (!file) {
-      toast.error(`Please select a ${type} file first`);
->>>>>>> 7dbaff3 (Resolve merge conflicts)
+  const handleUpload = async (type: UploadType) => {
+    const { file, data } = uploadStates[type];
+    if (!file || data.length === 0) {
+      toast.error('Please select a valid file first');
       return;
     }
 
-    setUploading(true);
-    setProgress(0);
-
-<<<<<<< HEAD
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (results) => {
-        const data = results.data;
-        const totalRows = data.length;
-        let successCount = 0;
-        let errorCount = 0;
-
-        for (let i = 0; i < totalRows; i++) {
-          try {
-            const row = data[i] as any;
-
-            if (type === 'faculty') {
-              await supabase.from('faculty').insert({
-                employee_id: row.employee_id || row.id,
-                department: row.department,
-                specialization: row.specialization,
-                max_duties_per_month: parseInt(row.max_duties) || 10,
-              });
-            } else if (type === 'exam') {
-              await supabase.from('exams').insert({
-                exam_name: row.exam_name || row.name,
-                exam_date: row.exam_date || row.date,
-                start_time: row.start_time,
-                end_time: row.end_time,
-                subject: row.subject,
-                department: row.department,
-                course: row.course,
-                semester: row.semester,
-                total_students: parseInt(row.total_students) || 0,
-              });
-            } else if (type === 'classroom') {
-              await supabase.from('classrooms').insert({
-                room_number: row.room_number || row.room,
-                building: row.building,
-                capacity: parseInt(row.capacity) || 30,
-                facilities: row.facilities ? row.facilities.split(',') : [],
-                is_available: row.is_available !== 'false',
-              });
-            }
-
-            successCount++;
-          } catch (error) {
-            console.error(`Error inserting row ${i}:`, error);
-            errorCount++;
-          }
-
-          setProgress(Math.round(((i + 1) / totalRows) * 100));
-        }
-
-        toast.success(
-          `Upload complete! ${successCount} rows inserted successfully${errorCount > 0 ? `, ${errorCount} errors` : ''}.`
-        );
-        setUploading(false);
-        setProgress(0);
-      },
-      error: (error) => {
-        toast.error(`Error: ${error.message}`);
-        setUploading(false);
-        setProgress(0);
-      },
-    });
-=======
     try {
-      // Read the file content
-      const fileContent = await file.text();
-      
-      // Parse the CSV data
-      const { data, errors } = await new Promise((resolve) => {
-        Papa.parse(fileContent, {
-          header: true,
-          skipEmptyLines: true,
-          complete: (results) => resolve(results),
-          error: (error) => resolve({ data: [], errors: [error] })
-        });
-      });
+      // Start upload
+      setUploadStates(prev => ({
+        ...prev,
+        [type]: {
+          ...prev[type],
+          isUploading: true,
+          progress: 0,
+          error: null,
+          success: false,
+        },
+      }));
 
-      if (errors && errors.length > 0) {
-        throw new Error('Failed to parse CSV file');
+      // Simulate progress (in a real app, you'd use actual upload progress)
+      const progressInterval = setInterval(() => {
+        setUploadStates(prev => {
+          const currentProgress = prev[type].progress;
+          const newProgress = Math.min(currentProgress + 10, 90);
+          return {
+            ...prev,
+            [type]: {
+              ...prev[type],
+              progress: newProgress,
+            },
+          };
+        });
+      }, 300);
+
+      // Call the appropriate API based on upload type
+      let response;
+      switch (type) {
+        case 'faculty':
+          response = await adminAPI.uploadFacultyData(data);
+          break;
+        case 'exam':
+          response = await adminAPI.uploadExamData(data);
+          break;
+        case 'classroom':
+          response = await adminAPI.uploadClassroomData(data);
+          break;
       }
 
-      // Upload the data using the adminAPI
-      const response = await adminAPI.uploadData(endpoint, { data });
+      clearInterval(progressInterval);
 
       if (response.success) {
-        toast.success(`Successfully uploaded ${data.length} ${type} records`);
-        
-        // Reset the file input
-        switch (type) {
-          case 'faculty':
-            setFacultyFile(null);
-            break;
-          case 'exam':
-            setExamFile(null);
-            break;
-          case 'classroom':
-            setClassroomFile(null);
-            break;
-        }
-        
-        setPreviewData([]);
+        setUploadStates(prev => ({
+          ...prev,
+          [type]: {
+            ...prev[type],
+            isUploading: false,
+            progress: 100,
+            success: true,
+          },
+        }));
+        toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} data uploaded successfully`);
       } else {
-        throw new Error(response.message || 'Failed to upload data');
+        throw new Error(response.message || 'Upload failed');
       }
     } catch (error: any) {
-      console.error(`Error uploading ${type} data:`, error);
+      clearInterval(progressInterval);
+      setUploadStates(prev => ({
+        ...prev,
+        [type]: {
+          ...prev[type],
+          isUploading: false,
+          progress: 0,
+          error: error.message || 'An error occurred during upload',
+        },
+      }));
       toast.error(`Failed to upload ${type} data: ${error.message}`);
-    } finally {
-      setUploading(false);
-      setProgress(0);
     }
->>>>>>> 7dbaff3 (Resolve merge conflicts)
   };
 
-  const FileUploadCard = ({
-    title,
-    description,
-    type,
-    file,
-    sampleFormat,
-  }: {
-    title: string;
-    description: string;
-    type: string;
-    file: File | null;
-    sampleFormat: string;
-  }) => (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileSpreadsheet className="w-5 h-5 text-primary" />
-          {title}
-        </CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor={`${type}-upload`}>Upload CSV File</Label>
-          <Input
-            id={`${type}-upload`}
-            type="file"
-            accept=".csv"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleFileUpload(file, type);
-            }}
-            className="cursor-pointer"
-          />
-          <p className="text-xs text-muted-foreground mt-2">
-            Sample format: {sampleFormat}
-          </p>
-        </div>
-
-        {file && (
-          <div className="flex items-center justify-between p-3 rounded-lg bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200">
-            <div className="flex items-center gap-2">
-              <Check className="w-4 h-4" />
-              <span className="text-sm font-medium">{file.name}</span>
+  const renderUploadCard = (type: UploadType, title: string, description: string, sampleFormat: string) => {
+    const state = uploadStates[type];
+    
+    return (
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>{description}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-center space-x-4">
+              <div className="flex-1">
+                <Label htmlFor={`${type}-file`} className="cursor-pointer">
+                  <div className="flex items-center justify-center w-full px-4 py-12 border-2 border-dashed rounded-lg border-gray-300 hover:border-primary transition-colors">
+                    {state.file ? (
+                      <div className="text-center">
+                        <FileSpreadsheet className="w-8 h-8 mx-auto mb-2 text-primary" />
+                        <p className="font-medium">{state.file.name}</p>
+                        <p className="text-sm text-gray-500">{(state.file.size / 1024).toFixed(2)} KB</p>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium text-primary">Click to upload</span> or drag and drop
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">CSV files only</p>
+                      </div>
+                    )}
+                    <Input
+                      id={`${type}-file`}
+                      type="file"
+                      accept=".csv"
+                      className="hidden"
+                      onChange={(e) => handleFileChange(e, type)}
+                    />
+                  </div>
+                </Label>
+              </div>
+              
+              <div className="flex flex-col space-y-2">
+                <Button
+                  type="button"
+                  onClick={() => document.getElementById(`${type}-file`)?.click()}
+                  variant="outline"
+                  disabled={state.isUploading}
+                >
+                  {state.file ? 'Change File' : 'Select File'}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => handleUpload(type)}
+                  disabled={!state.file || state.isUploading || state.success}
+                >
+                  {state.isUploading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : state.success ? (
+                    <>
+                      <Check className="mr-2 h-4 w-4" />
+                      Uploaded
+                    </>
+                  ) : (
+                    'Upload Data'
+                  )}
+                </Button>
+              </div>
             </div>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                if (type === 'faculty') setFacultyFile(null);
-                if (type === 'exam') setExamFile(null);
-                if (type === 'classroom') setClassroomFile(null);
-                setPreviewData([]);
-              }}
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-        )}
 
-        {uploading && (
-          <div className="space-y-2">
-            <Progress value={progress} />
-            <p className="text-sm text-center text-muted-foreground">
-              Uploading... {progress}%
-            </p>
-          </div>
-        )}
+            {state.isUploading && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Uploading...</span>
+                  <span>{state.progress}%</span>
+                </div>
+                <Progress value={state.progress} className="h-2" />
+              </div>
+            )}
 
-        <Button
-          onClick={() => handleUploadToDatabase(type)}
-          disabled={!file || uploading}
-          className="w-full"
-        >
-          <Upload className="w-4 h-4 mr-2" />
-          Upload to Database
-        </Button>
-      </CardContent>
-    </Card>
-  );
+            {state.error && (
+              <div className="p-3 text-sm text-red-700 bg-red-50 rounded-md flex items-start">
+                <AlertCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
+                <span>{state.error}</span>
+              </div>
+            )}
 
-  return (
-    <DashboardLayout>
-      <SEO title="Data Upload - Admin Dashboard" />
-
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-4xl font-bold mb-2">Data Upload</h1>
-          <p className="text-muted-foreground text-lg">
-            Upload CSV files to populate the database
-          </p>
-        </div>
-
-        <Tabs defaultValue="faculty" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="faculty">Faculty Data</TabsTrigger>
-            <TabsTrigger value="exams">Exam Data</TabsTrigger>
-            <TabsTrigger value="classrooms">Classroom Data</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="faculty" className="space-y-4">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <FileUploadCard
-                title="Upload Faculty Data"
-                description="Import faculty members with their details"
-                type="faculty"
-                file={facultyFile}
-                sampleFormat="employee_id, department, specialization, max_duties"
-              />
-            </motion.div>
-          </TabsContent>
-
-          <TabsContent value="exams" className="space-y-4">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <FileUploadCard
-                title="Upload Exam Data"
-                description="Import exam schedule and details"
-                type="exam"
-                file={examFile}
-                sampleFormat="exam_name, exam_date, start_time, end_time, subject, department"
-              />
-            </motion.div>
-          </TabsContent>
-
-          <TabsContent value="classrooms" className="space-y-4">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <FileUploadCard
-                title="Upload Classroom Data"
-                description="Import classroom and venue information"
-                type="classroom"
-                file={classroomFile}
-                sampleFormat="room_number, building, capacity, facilities"
-              />
-            </motion.div>
-          </TabsContent>
-        </Tabs>
-
-        {previewData.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5 text-amber-600" />
-                  Data Preview
-                </CardTitle>
-                <CardDescription>
-                  Showing first 10 rows of uploaded data
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-lg border overflow-auto">
+            {state.data.length > 0 && (
+              <div className="mt-4">
+                <h4 className="font-medium mb-2">Preview ({state.data.length} rows)</h4>
+                <div className="border rounded-md overflow-hidden">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        {Object.keys(previewData[0] || {}).map((key) => (
-                          <TableHead key={key}>{key}</TableHead>
+                        {state.headers.map((header) => (
+                          <TableHead key={header}>{header}</TableHead>
                         ))}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {previewData.map((row, index) => (
-                        <TableRow key={index}>
-                          {Object.values(row).map((value: any, i) => (
-                            <TableCell key={i}>{value}</TableCell>
+                      {state.data.slice(0, 5).map((row, rowIndex) => (
+                        <TableRow key={rowIndex}>
+                          {state.headers.map((header) => (
+                            <TableCell key={`${rowIndex}-${header}`}>
+                              {row[header] !== undefined ? String(row[header]) : ''}
+                            </TableCell>
                           ))}
                         </TableRow>
                       ))}
+                      {state.data.length > 5 && (
+                        <TableRow>
+                          <TableCell colSpan={state.headers.length} className="text-center text-sm text-gray-500">
+                            ... and {state.data.length - 5} more rows
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
+              </div>
+            )}
+
+            <div className="mt-4 p-4 bg-gray-50 rounded-md">
+              <h4 className="font-medium text-sm mb-2">Expected CSV Format:</h4>
+              <pre className="text-xs bg-white p-2 rounded border overflow-x-auto">
+                {sampleFormat}
+              </pre>
+              <Button
+                variant="link"
+                size="sm"
+                className="text-xs p-0 h-auto mt-2"
+                onClick={() => {
+                  // Create a sample CSV and trigger download
+                  const csvContent = sampleFormat;
+                  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.setAttribute('href', url);
+                  link.setAttribute('download', `${type}-sample.csv`);
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+              >
+                Download Sample CSV
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  return (
+    <DashboardLayout>
+      <SEO title="Data Upload - Admin Dashboard" />
+      
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Data Upload</h1>
+          <p className="text-gray-600">Upload and manage faculty, exam, and classroom data</p>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as UploadType)}>
+          <TabsList>
+            <TabsTrigger value="faculty">Faculty Data</TabsTrigger>
+            <TabsTrigger value="exam">Exam Data</TabsTrigger>
+            <TabsTrigger value="classroom">Classroom Data</TabsTrigger>
+          </TabsList>
+          
+          <div className="mt-6">
+            <TabsContent value="faculty">
+              {renderUploadCard(
+                'faculty',
+                'Upload Faculty Data',
+                'Upload a CSV file containing faculty information. Ensure the file follows the expected format.',
+                'id,name,email,department,role\n1,John Doe,john@example.com,Computer Science,Professor\n2,Jane Smith,jane@example.com,Mathematics,Associate Professor'
+              )}
+            </TabsContent>
+            
+            <TabsContent value="exam">
+              {renderUploadCard(
+                'exam',
+                'Upload Exam Data',
+                'Upload a CSV file containing exam schedule information. Ensure the file follows the expected format.',
+                'id,exam_name,date,start_time,end_time,department\n1,Midterm 1,2023-11-15,09:00,11:00,Computer Science\n2,Midterm 2,2023-11-20,14:00,16:00,Mathematics'
+              )}
+            </TabsContent>
+            
+            <TabsContent value="classroom">
+              {renderUploadCard(
+                'classroom',
+                'Upload Classroom Data',
+                'Upload a CSV file containing classroom information. Ensure the file follows the expected format.',
+                'id,room_number,building,capacity,type\n101,101,Main,50,Lecture Hall\n201,201,Science,30,Lab'
+              )}
+            </TabsContent>
+          </div>
+        </Tabs>
       </div>
     </DashboardLayout>
   );
-};
-
-export default DataUpload;
+}

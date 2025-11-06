@@ -4,72 +4,62 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/toast-provider';
-<<<<<<< HEAD
-import { supabase } from '@/lib/supabase';
-=======
-import api from '@/lib/axios';
->>>>>>> 7dbaff3 (Resolve merge conflicts)
+import { userAPI } from '@/services/api';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-<<<<<<< HEAD
-=======
+  const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
->>>>>>> 7dbaff3 (Resolve merge conflicts)
-  const { addToast } = useToast();
+  const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-<<<<<<< HEAD
-    
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      if (error) throw error;
-      
-      addToast('Password reset link sent to your email!', 'success');
-      
-      navigate('/login');
-    } catch (error: any) {
-      addToast(error.error_description || error.message, 'error');
-=======
+    setIsLoading(true);
     setMessage('');
-    
+
     try {
-      const response = await api.post('/auth/forgot-password', { email });
+      const response = await userAPI.forgotPassword({ email });
       
-      if (response.data.success) {
-        setMessage('Password reset link has been sent to your email.');
-        addToast('Password reset link sent to your email!', 'success');
+      if (response.success) {
+        setMessage('If an account with that email exists, you will receive a password reset link.');
+        toast({
+          title: 'Success',
+          description: 'Password reset link sent to your email',
+          variant: 'default',
+        });
+      } else {
+        throw new Error(response.message || 'Failed to send password reset email');
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to send reset email. Please try again.';
-      setMessage(errorMessage);
-      addToast(errorMessage, 'error');
->>>>>>> 7dbaff3 (Resolve merge conflicts)
+      console.error('Error sending password reset email:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to send password reset email';
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+    <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
       <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Forgot Password</CardTitle>
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold">Forgot Password</CardTitle>
           <CardDescription>
-            Enter your email and we'll send you a link to reset your password.
+            Enter your email address and we'll send you a link to reset your password.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">
+              <label
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                htmlFor="email"
+              >
                 Email
               </label>
               <Input
@@ -81,18 +71,27 @@ export default function ForgotPasswordPage() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Sending...' : 'Send Reset Link'}
+            
+            {message && (
+              <div className="p-3 text-sm text-green-700 bg-green-100 rounded-md">
+                {message}
+              </div>
+            )}
+            
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Sending...' : 'Send Reset Link'}
             </Button>
+            
+            <div className="text-center text-sm">
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
+                className="text-primary hover:underline"
+              >
+                Back to Login
+              </button>
+            </div>
           </form>
-          <div className="mt-4 text-center text-sm">
-            <button
-              onClick={() => navigate('/login')}
-              className="text-primary hover:underline"
-            >
-              Back to Login
-            </button>
-          </div>
         </CardContent>
       </Card>
     </div>

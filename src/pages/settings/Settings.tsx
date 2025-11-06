@@ -6,284 +6,321 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-<<<<<<< HEAD
-import { supabase } from '@/lib/supabase';
-=======
 import { userAPI } from '@/services/api';
->>>>>>> 7dbaff3 (Resolve merge conflicts)
+
+type Profile = {
+  full_name: string;
+  email: string;
+  phone?: string;
+  department?: string;
+  position?: string;
+  notifications_enabled: boolean;
+  dark_mode: boolean;
+};
 
 export default function Settings() {
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [profile, setProfile] = useState({
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [profile, setProfile] = useState<Profile>({
     full_name: '',
     email: '',
     phone: '',
-    notifications: true,
+    department: '',
+    position: '',
+    notifications_enabled: true,
     dark_mode: false,
   });
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
   
-  const { addToast } = useToast();
+  const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
-    try {
-      setLoading(true);
-<<<<<<< HEAD
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-=======
-      const response = await userAPI.getMe();
-      
-      if (!response.data) {
->>>>>>> 7dbaff3 (Resolve merge conflicts)
-        navigate('/login');
-        return;
+    const fetchProfile = async () => {
+      try {
+        setIsLoading(true);
+        const response = await userAPI.getProfile();
+        
+        if (response.success && response.data) {
+          setProfile({
+            full_name: response.data.full_name || '',
+            email: response.data.email || '',
+            phone: response.data.phone || '',
+            department: response.data.department || '',
+            position: response.data.position || '',
+            notifications_enabled: response.data.notifications_enabled ?? true,
+            dark_mode: response.data.dark_mode ?? false,
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load profile data',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-<<<<<<< HEAD
-      // Fetch additional profile data if needed
-      const { data: profileData, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+    fetchProfile();
+  }, [toast]);
 
-      if (error) throw error;
-
-      setProfile({
-        full_name: profileData?.full_name || user.user_metadata?.full_name || '',
-        email: user.email || '',
-        phone: profileData?.phone || '',
-        notifications: profileData?.notifications ?? true,
-        dark_mode: profileData?.dark_mode ?? false,
-=======
-      const userData = response.data;
-      setProfile({
-        full_name: userData.full_name || '',
-        email: userData.email || '',
-        phone: userData.phone || '',
-        notifications: userData.notifications ?? true,
-        dark_mode: userData.dark_mode ?? false,
->>>>>>> 7dbaff3 (Resolve merge conflicts)
-      });
-    } catch (error: any) {
-      addToast(error.message || 'Error loading profile', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type } = e.target;
+  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
     setProfile(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      [name]: type === 'checkbox' ? checked : value,
     }));
   };
 
-<<<<<<< HEAD
-=======
-  const handleToggle = (name: string, checked: boolean) => {
-    setProfile(prev => ({
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setPasswordForm(prev => ({
       ...prev,
-      [name]: checked
+      [name]: value,
     }));
   };
 
->>>>>>> 7dbaff3 (Resolve merge conflicts)
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
-      setSaving(true);
-<<<<<<< HEAD
-      const { data: { user } } = await supabase.auth.getUser();
+      setIsSaving(true);
+      const response = await userAPI.updateProfile(profile);
       
-      if (!user) {
-        navigate('/login');
-        return;
-      }
-
-      // Update profile in the profiles table
-      const { error } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user.id,
-          full_name: profile.full_name,
-          phone: profile.phone,
-          notifications: profile.notifications,
-          dark_mode: profile.dark_mode,
-          updated_at: new Date().toISOString(),
+      if (response.success) {
+        toast({
+          title: 'Success',
+          description: 'Profile updated successfully',
         });
-
-      if (error) throw error;
-
-      // Update email in auth if changed
-      if (user.email !== profile.email) {
-        const { error: emailError } = await supabase.auth.updateUser({
-          email: profile.email,
-        });
-        if (emailError) throw emailError;
+      } else {
+        throw new Error(response.message || 'Failed to update profile');
       }
-
-      addToast('Settings saved successfully!', 'success');
-=======
-      
-      // Update user profile using the API service
-      const response = await userAPI.updateMe({
-        full_name: profile.full_name,
-        email: profile.email,
-        phone: profile.phone,
-        notifications: profile.notifications,
-        dark_mode: profile.dark_mode
-      });
-
-      if (response.data) {
-        addToast('Profile updated successfully', 'success');
-      }
->>>>>>> 7dbaff3 (Resolve merge conflicts)
     } catch (error: any) {
-      addToast(error.message || 'Error saving settings', 'error');
+      console.error('Error updating profile:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update profile',
+        variant: 'destructive',
+      });
     } finally {
-      setSaving(false);
+      setIsSaving(false);
     }
   };
 
-<<<<<<< HEAD
-=======
-  const handlePasswordChange = async (currentPassword: string, newPassword: string) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast({
+        title: 'Error',
+        description: 'New passwords do not match',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     try {
+      setIsChangingPassword(true);
       const response = await userAPI.changePassword({
-        currentPassword,
-        newPassword
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
       });
       
-      if (response.data) {
-        addToast('Password updated successfully', 'success');
-        return true;
+      if (response.success) {
+        toast({
+          title: 'Success',
+          description: 'Password changed successfully',
+        });
+        setPasswordForm({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        });
+      } else {
+        throw new Error(response.message || 'Failed to change password');
       }
-      return false;
     } catch (error: any) {
-      addToast(error.response?.data?.message || 'Error updating password', 'error');
-      return false;
+      console.error('Error changing password:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to change password',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
->>>>>>> 7dbaff3 (Resolve merge conflicts)
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div>Loading settings...</div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
-      <h1 className="text-2xl font-bold mb-6">Settings</h1>
-      
-      <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="container mx-auto p-4 max-w-4xl space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold">Settings</h1>
+        <p className="text-gray-600">Manage your account settings and preferences</p>
+      </div>
+
+      <div className="space-y-6">
+        {/* Profile Settings */}
         <Card>
           <CardHeader>
-            <CardTitle>Profile</CardTitle>
+            <CardTitle>Profile Information</CardTitle>
             <CardDescription>Update your personal information</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="full_name">Full Name</Label>
-                <Input
-                  id="full_name"
-                  name="full_name"
-                  value={profile.full_name}
-                  onChange={handleChange}
-                  placeholder="Your full name"
-                />
+          <CardContent>
+            <form onSubmit={handleProfileSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="full_name">Full Name</Label>
+                  <Input
+                    id="full_name"
+                    name="full_name"
+                    value={profile.full_name}
+                    onChange={handleProfileChange}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={profile.email}
+                    onChange={handleProfileChange}
+                    required
+                    disabled
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    value={profile.phone}
+                    onChange={handleProfileChange}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="department">Department</Label>
+                  <Input
+                    id="department"
+                    name="department"
+                    value={profile.department}
+                    onChange={handleProfileChange}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="position">Position</Label>
+                  <Input
+                    id="position"
+                    name="position"
+                    value={profile.position}
+                    onChange={handleProfileChange}
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={profile.email}
-                  onChange={handleChange}
-                  placeholder="your.email@example.com"
+              
+              <div className="flex items-center space-x-2 pt-2">
+                <Switch
+                  id="notifications"
+                  checked={profile.notifications_enabled}
+                  onCheckedChange={(checked) => 
+                    setProfile(prev => ({ ...prev, notifications_enabled: checked }))
+                  }
                 />
+                <Label htmlFor="notifications">Enable email notifications</Label>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  value={profile.phone}
-                  onChange={handleChange}
-                  placeholder="+1 (555) 123-4567"
+              
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="dark-mode"
+                  checked={profile.dark_mode}
+                  onCheckedChange={(checked) => 
+                    setProfile(prev => ({ ...prev, dark_mode: checked }))
+                  }
                 />
+                <Label htmlFor="dark-mode">Dark mode</Label>
               </div>
-            </div>
+              
+              <div className="flex justify-end pt-4">
+                <Button type="submit" disabled={isSaving}>
+                  {isSaving ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </div>
+            </form>
           </CardContent>
         </Card>
 
+        {/* Change Password */}
         <Card>
           <CardHeader>
-            <CardTitle>Preferences</CardTitle>
-            <CardDescription>Customize your experience</CardDescription>
+            <CardTitle>Change Password</CardTitle>
+            <CardDescription>Update your password</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="notifications">Email Notifications</Label>
-                <p className="text-sm text-gray-500">
-                  Receive email notifications for important updates
-                </p>
+          <CardContent>
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="currentPassword">Current Password</Label>
+                <Input
+                  id="currentPassword"
+                  name="currentPassword"
+                  type="password"
+                  value={passwordForm.currentPassword}
+                  onChange={handlePasswordChange}
+                  required
+                />
               </div>
-              <Switch
-                id="notifications"
-                checked={profile.notifications}
-                onCheckedChange={(checked) => 
-                  setProfile(prev => ({ ...prev, notifications: checked }))
-                }
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="dark_mode">Dark Mode</Label>
-                <p className="text-sm text-gray-500">
-                  Toggle between light and dark theme
-                </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">New Password</Label>
+                  <Input
+                    id="newPassword"
+                    name="newPassword"
+                    type="password"
+                    value={passwordForm.newPassword}
+                    onChange={handlePasswordChange}
+                    required
+                    minLength={8}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    value={passwordForm.confirmPassword}
+                    onChange={handlePasswordChange}
+                    required
+                    minLength={8}
+                  />
+                </div>
               </div>
-              <Switch
-                id="dark_mode"
-                checked={profile.dark_mode}
-                onCheckedChange={(checked) => 
-                  setProfile(prev => ({ ...prev, dark_mode: checked }))
-                }
-              />
-            </div>
+              <div className="flex justify-end pt-2">
+                <Button type="submit" disabled={isChangingPassword}>
+                  {isChangingPassword ? 'Updating...' : 'Update Password'}
+                </Button>
+              </div>
+            </form>
           </CardContent>
         </Card>
-
-        <div className="flex justify-end space-x-4">
-          <Button 
-            type="button" 
-            variant="outline"
-            onClick={() => window.history.back()}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={saving}>
-            {saving ? 'Saving...' : 'Save Changes'}
-          </Button>
-        </div>
-      </form>
+      </div>
     </div>
   );
 }

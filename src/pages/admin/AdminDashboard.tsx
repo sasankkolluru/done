@@ -1,35 +1,14 @@
-<<<<<<< HEAD
-import { useEffect, useState } from 'react';
-import { DashboardLayout } from '@/components/DashboardLayout';
-import { SEO } from '@/components/SEO';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/lib/supabase';
-import { Users, Calendar, School, AlertCircle, TrendingUp, Clock } from 'lucide-react';
-import { motion } from 'framer-motion';
-=======
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { SEO } from '@/components/SEO';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Users, Calendar, School, AlertCircle, TrendingUp, Clock, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useToast } from '@/components/ui/toast-provider';
 import adminAPI from '@/services/adminAPI';
 import { useSocket } from '@/contexts/SocketContext';
-import { Button } from '@/components/ui/button';
-import { toast } from '@/components/ui/use-toast';
->>>>>>> 7dbaff3 (Resolve merge conflicts)
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell
-} from 'recharts';
 
 interface DashboardStats {
   totalFaculty: number;
@@ -38,378 +17,259 @@ interface DashboardStats {
   pendingRequests: number;
 }
 
-const AdminDashboard = () => {
+export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats>({
     totalFaculty: 0,
     totalExams: 0,
     totalSchedules: 0,
     pendingRequests: 0,
   });
-  const [loading, setLoading] = useState(true);
-<<<<<<< HEAD
+  const [isLoading, setIsLoading] = useState(true);
+  const [recentActivity, setRecentActivity] = useState<Array<{
+    id: string;
+    action: string;
+    timestamp: string;
+    user: string;
+  }>>([]);
+  
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const socket = useSocket();
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
-      const [faculty, exams, schedules, requests] = await Promise.all([
-        supabase.from('faculty').select('*', { count: 'exact', head: true }),
-        supabase.from('exams').select('*', { count: 'exact', head: true }),
-        supabase.from('duty_schedules').select('*', { count: 'exact', head: true }),
-        supabase.from('change_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-      ]);
-
-      setStats({
-        totalFaculty: faculty.count || 0,
-        totalExams: exams.count || 0,
-        totalSchedules: schedules.count || 0,
-        pendingRequests: requests.count || 0,
-      });
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-=======
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { socket } = useSocket();
-
-  useEffect(() => {
-    fetchStats();
-
-    // Set up socket event listeners
-    if (socket) {
-      // Listen for real-time updates
-      socket.on('stats_updated', () => {
-        console.log('Received stats_updated event, refreshing data...');
-        fetchStats(true);
-      });
-
-      // Listen for specific updates
-      socket.on('new_faculty', () => {
-        console.log('New faculty member added, updating stats...');
-        fetchStats(true);
-      });
-
-      socket.on('new_exam', () => {
-        console.log('New exam created, updating stats...');
-        fetchStats(true);
-      });
-
-      // Clean up event listeners
-      return () => {
-        socket.off('stats_updated');
-        socket.off('new_faculty');
-        socket.off('new_exam');
-      };
-    }
-  }, [socket, fetchStats]);
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchStats(true);
-  };
-
-  const fetchStats = useCallback(async (showToast = false) => {
-    try {
-      if (!refreshing) setLoading(true);
-      setError(null);
+      setIsLoading(true);
       
-      const response = await adminAPI.getDashboardStats();
-      
-      if (response.data) {
-        setStats({
-          totalFaculty: response.data.totalFaculty || 0,
-          totalExams: response.data.totalExams || 0,
-          totalSchedules: response.data.totalSchedules || 0,
-          pendingRequests: response.data.pendingRequests || 0,
-        });
-        
-        if (showToast) {
-          toast({
-            title: 'Dashboard updated',
-            description: 'The dashboard has been refreshed with the latest data.',
-          });
-        }
+      // Fetch dashboard stats
+      const statsResponse = await adminAPI.getDashboardStats();
+      if (statsResponse.success) {
+        setStats(statsResponse.data);
       }
-    } catch (error: any) {
-      console.error('Error fetching dashboard stats:', error);
-      setError(error.message || 'Failed to load dashboard data');
+      
+      // Fetch recent activity
+      const activityResponse = await adminAPI.getRecentActivity();
+      if (activityResponse.success) {
+        setRecentActivity(activityResponse.data);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
       toast({
         title: 'Error',
-        description: 'Failed to refresh dashboard data',
+        description: 'Failed to load dashboard data',
         variant: 'destructive',
       });
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      setIsLoading(false);
     }
-  }, [refreshing]);
->>>>>>> 7dbaff3 (Resolve merge conflicts)
+  }, [toast]);
 
-  const departmentData = [
-    { name: 'Computer Science', value: 45 },
-    { name: 'Mathematics', value: 30 },
-    { name: 'Physics', value: 25 },
-    { name: 'Chemistry', value: 35 },
-    { name: 'Biology', value: 28 },
-  ];
+  useEffect(() => {
+    fetchDashboardData();
+    
+    // Set up socket listeners for real-time updates
+    if (socket) {
+      socket.on('dashboardUpdate', (data) => {
+        if (data.type === 'stats') {
+          setStats(prev => ({
+            ...prev,
+            ...data.data
+          }));
+        }
+        
+        if (data.type === 'activity') {
+          setRecentActivity(prev => [data.data, ...prev].slice(0, 5));
+        }
+      });
+      
+      return () => {
+        socket.off('dashboardUpdate');
+      };
+    }
+  }, [fetchDashboardData, socket]);
 
-  const workloadData = [
-    { month: 'Jan', duties: 120 },
-    { month: 'Feb', duties: 98 },
-    { month: 'Mar', duties: 145 },
-    { month: 'Apr', duties: 132 },
-    { month: 'May', duties: 156 },
-    { month: 'Jun', duties: 89 },
-  ];
+  const handleRefresh = () => {
+    fetchDashboardData();
+    toast({
+      title: 'Refreshing...',
+      description: 'Updating dashboard data',
+    });
+  };
 
-  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-
-  const statCards = [
-    {
-      title: 'Total Faculty',
-      value: stats.totalFaculty,
-      icon: Users,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100 dark:bg-blue-900/20',
-      change: '+12%',
-      changeLabel: 'from last month'
-    },
-    {
-      title: 'Total Exams',
-      value: stats.totalExams,
-      icon: School,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100 dark:bg-green-900/20',
-      change: '+8%',
-      changeLabel: 'from last month'
-    },
-    {
-      title: 'Scheduled Duties',
-      value: stats.totalSchedules,
-      icon: Calendar,
-      color: 'text-amber-600',
-      bgColor: 'bg-amber-100 dark:bg-amber-900/20',
-      change: '+23%',
-      changeLabel: 'from last month'
-    },
-    {
-      title: 'Pending Requests',
-      value: stats.pendingRequests,
-      icon: AlertCircle,
-      color: 'text-red-600',
-      bgColor: 'bg-red-100 dark:bg-red-900/20',
-      change: '-5%',
-      changeLabel: 'from last week'
-    },
-  ];
-
-  if (loading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      </DashboardLayout>
-    );
-  }
+  const StatCard = ({ 
+    title, 
+    value, 
+    icon: Icon, 
+    color = 'bg-blue-100 text-blue-600',
+    onClick 
+  }: { 
+    title: string; 
+    value: number | string; 
+    icon: React.ElementType; 
+    color?: string;
+    onClick?: () => void;
+  }) => (
+    <motion.div
+      whileHover={{ y: -5 }}
+      className="cursor-pointer"
+      onClick={onClick}
+    >
+      <Card className="h-full">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500">{title}</p>
+              <h3 className="text-2xl font-bold mt-1">{value}</h3>
+            </div>
+            <div className={`p-3 rounded-full ${color}`}>
+              <Icon className="h-6 w-6" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
 
   return (
     <DashboardLayout>
-<<<<<<< HEAD
-      <SEO title="Admin Dashboard - Exam Duty Scheduler" />
-
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-4xl font-bold mb-2">Dashboard</h1>
-          <p className="text-muted-foreground text-lg">
-            Overview of your exam duty scheduling system
-          </p>
-        </div>
-
-=======
       <SEO title="Admin Dashboard" />
+      
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-            <p className="text-muted-foreground">
-              Overview of your system's performance and activities
-            </p>
+            <p className="text-gray-500">Welcome back! Here's what's happening with your institution.</p>
           </div>
           <Button 
             variant="outline" 
             size="sm" 
             onClick={handleRefresh}
-            disabled={loading || refreshing}
+            disabled={isLoading}
           >
-            {refreshing ? (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                Refreshing...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Refresh
-              </>
-            )}
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
           </Button>
         </div>
->>>>>>> 7dbaff3 (Resolve merge conflicts)
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {statCards.map((card, index) => (
-            <motion.div
-              key={card.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-            >
-              <Card className="hover:shadow-lg transition-shadow">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    {card.title}
-                  </CardTitle>
-                  <div className={`${card.bgColor} p-2 rounded-lg`}>
-                    <card.icon className={`h-5 w-5 ${card.color}`} />
+        
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          </div>
+        ) : (
+          <>
+            {/* Stats Grid */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <StatCard 
+                title="Total Faculty" 
+                value={stats.totalFaculty} 
+                icon={Users} 
+                color="bg-purple-100 text-purple-600"
+                onClick={() => navigate('/admin/faculty')}
+              />
+              <StatCard 
+                title="Upcoming Exams" 
+                value={stats.totalExams} 
+                icon={School} 
+                color="bg-green-100 text-green-600"
+                onClick={() => navigate('/admin/exams')}
+              />
+              <StatCard 
+                title="Scheduled Sessions" 
+                value={stats.totalSchedules} 
+                icon={Calendar} 
+                color="bg-yellow-100 text-yellow-600"
+                onClick={() => navigate('/admin/schedules')}
+              />
+              <StatCard 
+                title="Pending Requests" 
+                value={stats.pendingRequests} 
+                icon={AlertCircle} 
+                color="bg-red-100 text-red-600"
+                onClick={() => navigate('/admin/requests')}
+              />
+            </div>
+            
+            {/* Recent Activity */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Recent Activity</CardTitle>
+                      <CardDescription>Latest actions in the system</CardDescription>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => navigate('/admin/activity')}
+                    >
+                      View All
+                    </Button>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold mb-2">{card.value}</div>
-                  <div className="flex items-center text-xs text-muted-foreground">
-                    <TrendingUp className="w-3 h-3 mr-1" />
-                    <span className="font-medium text-green-600">{card.change}</span>
-                    <span className="ml-1">{card.changeLabel}</span>
+                  <div className="space-y-4">
+                    {recentActivity.length > 0 ? (
+                      recentActivity.map((activity) => (
+                        <div key={activity.id} className="flex items-start space-x-3">
+                          <div className="p-2 bg-gray-100 rounded-full">
+                            <Clock className="h-4 w-4 text-gray-500" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{activity.user}</p>
+                            <p className="text-sm text-gray-500">{activity.action}</p>
+                            <p className="text-xs text-gray-400">
+                              {new Date(activity.timestamp).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-gray-500 text-center py-4">No recent activity</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
-            </motion.div>
-          ))}
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle>Duty Allocation Trends</CardTitle>
-                <CardDescription>
-                  Monthly duty allocation statistics
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={workloadData}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="month" className="text-xs" />
-                    <YAxis className="text-xs" />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'hsl(var(--background))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                      }}
-                    />
-                    <Bar dataKey="duties" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle>Department Distribution</CardTitle>
-                <CardDescription>
-                  Faculty distribution across departments
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={departmentData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
+              
+              {/* Quick Actions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Quick Actions</CardTitle>
+                  <CardDescription>Common tasks and shortcuts</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-2">
+                    <Button 
+                      variant="outline" 
+                      className="justify-start"
+                      onClick={() => navigate('/admin/faculty/add')}
                     >
-                      {departmentData.map((_entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'hsl(var(--background))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="w-5 h-5" />
-                Recent Activity
-              </CardTitle>
-              <CardDescription>
-                Latest updates and changes in the system
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[
-                  { action: 'New duty schedule created', time: '2 minutes ago', type: 'schedule' },
-                  { action: 'Faculty member added', time: '15 minutes ago', type: 'faculty' },
-                  { action: 'Change request approved', time: '1 hour ago', type: 'request' },
-                  { action: 'Exam data uploaded', time: '2 hours ago', type: 'upload' },
-                  { action: 'Report generated', time: '3 hours ago', type: 'report' },
-                ].map((activity, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                      <span className="font-medium">{activity.action}</span>
-                    </div>
-                    <span className="text-sm text-muted-foreground">{activity.time}</span>
+                      <Users className="mr-2 h-4 w-4" />
+                      Add New Faculty
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="justify-start"
+                      onClick={() => navigate('/admin/exams/schedule')}
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      Schedule Exam
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="justify-start"
+                      onClick={() => navigate('/admin/reports')}
+                    >
+                      <TrendingUp className="mr-2 h-4 w-4" />
+                      Generate Reports
+                    </Button>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        )}
       </div>
     </DashboardLayout>
   );
-};
-
-export default AdminDashboard;
+}

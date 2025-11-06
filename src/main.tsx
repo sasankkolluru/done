@@ -1,31 +1,22 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-<<<<<<< HEAD
-import { ThemeProvider } from '@/contexts/ThemeContext';
-=======
 import { BrowserRouter as Router } from 'react-router-dom';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { AuthProvider } from '@/contexts/AuthContext';
->>>>>>> 7dbaff3 (Resolve merge conflicts)
 import { ToastProvider } from '@/components/ui/toast-provider';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
 
-console.log('Application starting...');
+// Clear any existing content in the root element
+document.getElementById('root')!.innerHTML = '';
 
 const root = createRoot(document.getElementById('root')!);
 
-root.render(
+// Wrap the app with all necessary providers in the correct order
+const AppWithProviders = () => (
   <StrictMode>
     <ErrorBoundary>
-<<<<<<< HEAD
-      <ThemeProvider defaultTheme="system" storageKey="exam-invigilation-ui-theme">
-        <ToastProvider>
-          <App />
-        </ToastProvider>
-      </ThemeProvider>
-=======
       <Router>
         <ThemeProvider defaultTheme="system" storageKey="exam-invigilation-ui-theme">
           <AuthProvider>
@@ -35,7 +26,12 @@ root.render(
           </AuthProvider>
         </ThemeProvider>
       </Router>
->>>>>>> 7dbaff3 (Resolve merge conflicts)
     </ErrorBoundary>
   </StrictMode>
 );
+
+// Render the app
+root.render(<AppWithProviders />);
+
+// Log that the app has started
+console.log('Application started successfully');

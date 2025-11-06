@@ -1,14 +1,15 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-<<<<<<< HEAD
-import { User } from '@supabase/supabase-js';
-import { supabase, Profile } from '@/lib/supabase';
-
-interface AuthContextType {
-  user: User | null;
-  profile: Profile | null;
-=======
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+
+// Create axios instance with base URL
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: true,
+});
 
 interface User {
   id: string;
@@ -18,12 +19,14 @@ interface User {
   department?: string;
   phone?: string;
   token: string;
+  profile?: any;
 }
 
 interface AuthContextType {
   user: User | null;
->>>>>>> 7dbaff3 (Resolve merge conflicts)
+  profile: any | null;
   loading: boolean;
+  isAuthenticated: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, userData: {
     full_name: string;
@@ -36,96 +39,38 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-<<<<<<< HEAD
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  console.log('AuthProvider initializing...');
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    console.log('AuthProvider useEffect running');
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Session data:', session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        console.log('User found, fetching profile...');
-        fetchProfile(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      (async () => {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        } else {
-          setProfile(null);
-          setLoading(false);
-        }
-      })();
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const fetchProfile = async (userId: string) => {
-    console.log('Fetching profile for user:', userId);
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (error) throw error;
-      setProfile(data);
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-=======
-// Create axios instance with base URL from environment variables
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
-  withCredentials: true,
-});
-
-// Add a request interceptor to include the auth token
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Check if user is already logged in on initial load
+  const isAuthenticated = !!user;
+
+  // Check for existing session on mount
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      // Verify token with backend
-      const verifyToken = async () => {
-        try {
+    const checkAuth = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          // Verify token with backend
           const response = await api.get('/auth/me');
           setUser(response.data.user);
-        } catch (error) {
-          console.error('Error verifying token:', error);
-          localStorage.removeItem('token');
-          setUser(null);
-        } finally {
-          setLoading(false);
+          if (response.data.profile) {
+            setProfile(response.data.profile);
+          }
         }
-      };
-      verifyToken();
-    } else {
-      setLoading(false);
-    }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        localStorage.removeItem('token');
+        setUser(null);
+        setProfile(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
   }, []);
 
   const signIn = async (email: string, password: string) => {
@@ -137,8 +82,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Store the token in localStorage
       localStorage.setItem('token', token);
       
-      // Set the user in state
+      // Set the default Authorization header for axios
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
       setUser(user);
+      if (response.data.profile) {
+        setProfile(response.data.profile);
+      }
+      setLoading(false);
       
       // Redirect based on user role
       if (user.role === 'admin') {
@@ -148,34 +99,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (error: any) {
       console.error('Error signing in:', error.response?.data?.message || error.message);
-      throw error;
->>>>>>> 7dbaff3 (Resolve merge conflicts)
-    } finally {
       setLoading(false);
+      throw error;
     }
   };
 
-<<<<<<< HEAD
-  const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) throw error;
-    if (data.user) {
-      await fetchProfile(data.user.id);
-    }
-  };
-
-  const signUp = async (
-    email: string,
-    password: string,
-=======
   const signUp = async (
     email: string, 
     password: string, 
->>>>>>> 7dbaff3 (Resolve merge conflicts)
     userData: {
       full_name: string;
       role: 'admin' | 'faculty';
@@ -183,35 +114,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       phone?: string;
     }
   ) => {
-<<<<<<< HEAD
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-
-    if (error) throw error;
-
-    if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').insert([
-        {
-          id: data.user.id,
-          email,
-          full_name: userData.full_name,
-          role: userData.role,
-          department: userData.department,
-          phone: userData.phone,
-        },
-      ]);
-
-      if (profileError) throw profileError;
-      await fetchProfile(data.user.id);
-=======
     try {
       setLoading(true);
       const response = await api.post('/auth/register', {
         email,
         password,
-        ...userData
+        ...userData,
       });
       
       const { user, token } = response.data;
@@ -219,8 +127,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Store the token in localStorage
       localStorage.setItem('token', token);
       
-      // Set the user in state
+      // Set the default Authorization header for axios
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
       setUser(user);
+      if (response.data.profile) {
+        setProfile(response.data.profile);
+      }
+      setLoading(false);
       
       // Redirect based on user role
       if (user.role === 'admin') {
@@ -230,48 +144,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (error: any) {
       console.error('Error signing up:', error.response?.data?.message || error.message);
-      throw error;
-    } finally {
       setLoading(false);
->>>>>>> 7dbaff3 (Resolve merge conflicts)
+      throw error;
     }
   };
 
   const signOut = async () => {
-<<<<<<< HEAD
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    setUser(null);
-    setProfile(null);
-  };
-
-  return (
-    <AuthContext.Provider
-      value={{ user, profile, loading, signIn, signUp, signOut }}
-    >
-      {children}
-=======
     try {
-      // Call backend to invalidate token
       await api.post('/auth/logout');
     } catch (error) {
-      console.error('Error during sign out:', error);
+      console.error('Logout error:', error);
     } finally {
       // Clear local storage and state
       localStorage.removeItem('token');
+      delete api.defaults.headers.common['Authorization'];
       setUser(null);
+      setProfile(null);
       navigate('/login');
     }
   };
 
+  const value = {
+    user,
+    profile,
+    loading,
+    isAuthenticated,
+    signIn,
+    signUp,
+    signOut,
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={value}>
       {!loading && children}
->>>>>>> 7dbaff3 (Resolve merge conflicts)
     </AuthContext.Provider>
   );
 };
 
+// Export the useAuth hook
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -279,9 +189,5 @@ export const useAuth = () => {
   }
   return context;
 };
-<<<<<<< HEAD
-=======
 
-// Export the axios instance for use in other parts of the app
-export { api };
->>>>>>> 7dbaff3 (Resolve merge conflicts)
+export default AuthContext;
